@@ -266,7 +266,9 @@ function renderScore(ov, cItems, aItems, rc){
   const score = wSum ? have.reduce((s,p)=>s+p.v*p.w,0)/wSum : null;
 
   document.getElementById('sNum').textContent = score==null ? '–' : Math.round(score);
-  document.getElementById('gFill').style.strokeDasharray = `${score==null?0:score/100*314.16} 314.16`;
+  const g=document.getElementById('gFill');
+  g.style.strokeDasharray = `${score==null?0:score/100*314.16} 314.16`;
+  g.style.opacity = score==null ? 0 : 1;
   document.getElementById('sGrade').textContent = score==null ? '等待第一份回馈'
     : score>=90 ? '非常圆满' : score>=80 ? '圆满' : score>=70 ? '良好' : '还有进步空间';
   document.getElementById('sParts').innerHTML = parts.map(p=>`<div class="part"><span class="pl">${p.label} <small>${p.w}%</small></span>
