@@ -66,6 +66,25 @@ details table{border-collapse:collapse;width:100%;margin-top:8px;font-variant-nu
 details th,details td{border-bottom:1px solid var(--line);padding:4px 6px;text-align:right}
 details th:first-child,details td:first-child{text-align:left}
 footer{color:var(--ink3);font-size:12px;margin-top:18px;text-align:center}
+.score{display:grid;grid-template-columns:132px minmax(0,1fr);gap:16px;align-items:center;margin-top:18px}
+.gauge{position:relative;width:132px;height:132px}
+.gauge svg{width:100%;height:100%;transform:rotate(-90deg)}
+.g-track{fill:none;stroke:var(--line);stroke-width:10}
+.g-fill{fill:none;stroke:var(--bar);stroke-width:10;stroke-linecap:round;stroke-dasharray:0 314.16;transition:stroke-dasharray .8s ease}
+.g-num{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.g-num b{font-size:40px;line-height:1;font-variant-numeric:tabular-nums}
+.g-num span{font-size:12px;color:var(--ink3);margin-top:2px}
+.s-k{font-size:13px;color:var(--ink2)}
+.s-grade{font-size:20px;font-weight:700;margin:2px 0 8px}
+.part{display:grid;grid-template-columns:8em minmax(24px,1fr) 2em;gap:6px;align-items:center;font-size:12px;margin:5px 0}
+.part .pl{color:var(--ink2);white-space:nowrap}
+.part .pl small{color:var(--ink3);font-size:11px}
+.part .pt{height:8px;background:var(--line);border-radius:4px;overflow:hidden}
+.part .pf{height:100%;background:var(--bar);border-radius:0 4px 4px 0}
+.part .pv{text-align:right;font-variant-numeric:tabular-nums;color:var(--ink)}
+.s-how{grid-column:1/-1;margin-top:0}
+.s-how p{margin:6px 0 0;font-size:12px;line-height:1.7;color:var(--ink2)}
+@media (max-width:420px){.score{grid-template-columns:112px minmax(0,1fr);gap:12px}.gauge{width:112px;height:112px}.g-num b{font-size:34px}}
 #tip{position:fixed;pointer-events:none;background:var(--ink);color:var(--card);font-size:12px;
   padding:5px 8px;border-radius:6px;opacity:0;transition:opacity .1s;z-index:9;white-space:nowrap}
 @media (max-width:420px){.tile .v{font-size:24px}}
@@ -78,6 +97,27 @@ footer{color:var(--ink3);font-size:12px;margin-top:18px;text-align:center}
     <div class="sub">感恩大家的回馈🙏 这里只显示评分与选项的统计，不显示姓名与文字内容。</div>
     <div class="status"><span class="dot" id="dot"></span><span id="stat">读取中…</span></div>
   </header>
+
+  <section class="score">
+    <div class="gauge">
+      <svg viewBox="0 0 120 120" aria-hidden="true">
+        <circle cx="60" cy="60" r="50" class="g-track"/>
+        <circle cx="60" cy="60" r="50" class="g-fill" id="gFill"/>
+      </svg>
+      <div class="g-num"><b id="sNum">–</b><span>/ 100</span></div>
+    </div>
+    <div class="s-side">
+      <div class="s-k">本次活动综合评分</div>
+      <div class="s-grade" id="sGrade">等待第一份回馈</div>
+      <div id="sParts"></div>
+    </div>
+    <details class="s-how">
+      <summary>分数怎么算</summary>
+      <p>四个部分加权：整体满意度 40%、课程受用程度 30%、各项满意度 20%、推荐意愿 10%。<br>
+      1–5 分的题目以「平均分 ÷ 5 × 100」换算；推荐意愿以 一定会 100、可能会 75、还不确定 50、不会 0 换算。<br>
+      90 分以上「非常圆满」，80–89「圆满」，70–79「良好」，70 以下「还有进步空间」。</p>
+    </details>
+  </section>
 
   <div class="tiles">
     <div class="tile"><div class="k">已填写</div><div class="v" id="tN">–<small> 人</small></div></div>
@@ -203,9 +243,35 @@ function render(rows){
   choiceBars(document.getElementById('q_pace'), iPace!=null?count(data,iPace):{}, ORDERS.pace);
   choiceBars(document.getElementById('q_rec'), rc, ORDERS.rec);
 
+  renderScore(ov, cItems, aItems, rc);
+
   const all=[...cItems,...aItems, ...(ov.n?[{label:'整体满意度',...ov}]:[])];
   document.getElementById('tbl').innerHTML=`<table><tr><th>项目</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>人数</th><th>平均</th></tr>${
     all.map(it=>`<tr><td>${esc(it.label)}</td>${[1,2,3,4,5].map(k=>`<td>${it.c[k]}</td>`).join('')}<td>${it.n}</td><td>${it.n?it.avg.toFixed(2):'–'}</td></tr>`).join('')}</table>`;
+}
+
+// 综合评分：整体 40%、课程 30%、各项 20%、推荐 10%；没有数据的部分不计入，权重按比例重分
+const REC_PTS = {'一定会':100,'可能会':75,'还不确定':50,'不会':0};
+function renderScore(ov, cItems, aItems, rc){
+  const mean = items => { const v=items.filter(i=>i.n).map(i=>i.avg); return v.length ? v.reduce((a,b)=>a+b,0)/v.length : null; };
+  const to100 = a => a==null ? null : a/5*100;
+  let rN=0, rS=0; Object.entries(rc).forEach(([k,v])=>{ if(k in REC_PTS){ rN+=v; rS+=REC_PTS[k]*v; } });
+  const parts=[
+    {label:'整体满意度', w:40, v:to100(ov.n?ov.avg:null)},
+    {label:'课程受用',   w:30, v:to100(mean(cItems))},
+    {label:'各项满意度', w:20, v:to100(mean(aItems))},
+    {label:'推荐意愿',   w:10, v:rN ? rS/rN : null}
+  ];
+  const have=parts.filter(p=>p.v!=null), wSum=have.reduce((s,p)=>s+p.w,0);
+  const score = wSum ? have.reduce((s,p)=>s+p.v*p.w,0)/wSum : null;
+
+  document.getElementById('sNum').textContent = score==null ? '–' : Math.round(score);
+  document.getElementById('gFill').style.strokeDasharray = `${score==null?0:score/100*314.16} 314.16`;
+  document.getElementById('sGrade').textContent = score==null ? '等待第一份回馈'
+    : score>=90 ? '非常圆满' : score>=80 ? '圆满' : score>=70 ? '良好' : '还有进步空间';
+  document.getElementById('sParts').innerHTML = parts.map(p=>`<div class="part"><span class="pl">${p.label} <small>${p.w}%</small></span>
+    <div class="pt"><div class="pf" style="width:${p.v==null?0:p.v}%" data-tip="${p.label}：${p.v==null?'暂无':Math.round(p.v)+' 分'}（占 ${p.w}%）"></div></div>
+    <span class="pv">${p.v==null?'–':Math.round(p.v)}</span></div>`).join('');
 }
 
 async function load(){
