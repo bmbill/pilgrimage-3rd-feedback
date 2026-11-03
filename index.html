@@ -195,7 +195,7 @@ footer{margin-top:20px;text-align:center;font-family:var(--serif);color:var(--in
     <div id="tbl"></div>
   </details>
 
-  <p class="privacy">本页只显示评分与选项的统计，不显示姓名、地区与文字回馈。<br>数据约每 5 分钟同步一次，本页每 30 秒自动更新。</p>
+  <p class="privacy">本页只显示评分与选项的统计，不显示姓名、地区与文字回馈。<br>本页每 30 秒自动更新。</p>
   <footer>感恩每一位同行的善知识 🙏</footer>
 </main>
 <div id="tip"></div>
@@ -334,11 +334,20 @@ function render(S){
   Sky.update(S.n, S.score);
 }
 
+// 即时来源：另一份只用 IMPORTRANGE 抓「统计」分页的试算表（无姓名），知道链接即可读取；读不到时退回发布的 CSV
+const LIVE_URL = 'https://docs.google.com/spreadsheets/d/1w2DqC56zBzc395wAZbf9bhPcAaGy2VJqXlB2JMym4lc/gviz/tq?tqx=out:csv&gid=0';
+async function fetchCSV(url){
+  const res=await fetch(url+'&t='+Date.now(),{cache:'no-store'});
+  if(!res.ok) throw new Error(res.status);
+  const t=await res.text();
+  if(!/课程受用/.test(t.slice(0,400))) throw new Error('bad data');   // 未公开时会拿到登入页
+  return t;
+}
 async function load(){
   try{
-    const res=await fetch(CSV_URL+(CSV_URL.includes('?')?'&':'?')+'t='+Date.now(),{cache:'no-store'});
-    if(!res.ok) throw new Error(res.status);
-    render(compute(parseCSV(await res.text())));
+    let text;
+    try{ text=await fetchCSV(LIVE_URL); }catch(_){ text=await fetchCSV(CSV_URL); }
+    render(compute(parseCSV(text)));
     $('dot').classList.remove('off');
     $('stat').textContent='即时更新 · '+new Date().toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'});
   }catch(e){
