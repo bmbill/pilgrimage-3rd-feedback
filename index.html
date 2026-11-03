@@ -104,6 +104,32 @@ details.tbl summary{cursor:pointer}
 details.tbl table{border-collapse:collapse;width:100%;margin-top:10px;font-variant-numeric:tabular-nums}
 details.tbl th,details.tbl td{border-bottom:1px solid var(--line);padding:6px;text-align:right}
 details.tbl th:first-child,details.tbl td:first-child{text-align:left}
+/* 学员的声音 */
+.vgrid{display:grid;gap:12px}
+.vcard h3{font-family:var(--serif);font-weight:700;font-size:17px;margin:0 0 4px;letter-spacing:.04em;display:flex;align-items:center;gap:8px}
+.vcard h3 .ic{width:24px;height:24px;border-radius:50%;background:var(--gold-soft);color:var(--gold);display:inline-flex;align-items:center;justify-content:center;font-size:13px;flex:none}
+.vcard .vsub{font-size:12px;color:var(--ink3);margin:0 0 10px}
+.vlist{list-style:none;margin:0;padding:0}
+.vlist li{position:relative;padding:10px 0 10px 18px;border-top:1px solid var(--line);font-size:14.5px;line-height:1.7}
+.vlist li:first-child{border-top:0}
+.vlist li::before{content:"";position:absolute;left:2px;top:19px;width:6px;height:6px;border-radius:50%;background:var(--gold)}
+.vlist li.sug::before{background:var(--s1)}
+.cnt{display:inline-block;margin-left:6px;font-size:11px;color:var(--gold);border:1px solid rgba(232,194,122,.35);border-radius:999px;padding:0 7px;line-height:18px;vertical-align:1px;white-space:nowrap}
+.vlist li.sug .cnt{color:#aab6f2;border-color:rgba(106,127,224,.45)}
+.vtag{font-size:11px;color:var(--ink3);margin-right:6px}
+.quotes{display:grid;gap:10px}
+.quote{position:relative;padding:14px 16px 14px 46px;border-radius:14px;background:linear-gradient(180deg,rgba(232,194,122,.10),rgba(232,194,122,.03));border:1px solid rgba(232,194,122,.22);
+  font-family:var(--serif);font-size:15px;line-height:1.8}
+.quote::before{content:"“";position:absolute;left:14px;top:4px;line-height:1;font-size:40px;color:var(--gold);opacity:.6;font-family:var(--serif)}
+.quote .cnt{font-family:var(--sans)}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:1px solid var(--line);background:var(--card2);border-radius:999px;padding:5px 12px;font-size:14px}
+.chip b{color:var(--gold);font-weight:600;margin-left:6px;font-size:12px}
+.actions{counter-reset:a;list-style:none;margin:0;padding:0}
+.actions li{counter-increment:a;position:relative;padding:10px 0 10px 34px;border-top:1px solid var(--line);font-size:14.5px;line-height:1.7}
+.actions li:first-child{border-top:0}
+.actions li::before{content:counter(a);position:absolute;left:0;top:10px;width:24px;height:24px;border-radius:50%;background:var(--gold);color:#0a1024;
+  font-family:var(--serif);font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:center}
 .privacy{margin-top:28px;font-size:12px;color:var(--ink3);text-align:center;line-height:1.8}
 footer{margin-top:20px;text-align:center;font-family:var(--serif);color:var(--ink2);font-size:14px;letter-spacing:.08em}
 
@@ -195,7 +221,13 @@ footer{margin-top:20px;text-align:center;font-family:var(--serif);color:var(--in
     <div id="tbl"></div>
   </details>
 
-  <p class="privacy">本页只显示评分与选项的统计，不显示姓名、地区与文字回馈。<br>本页每 30 秒自动更新。</p>
+  <section class="sec reveal" id="voices">
+    <div class="sec-h"><span class="no">伍</span><h2>学员的声音</h2></div>
+    <p class="sec-sub" id="vMeta">由 AI 整理文字回馈，已去除可辨识身份的信息，内容为改写而非原文</p>
+    <div id="vBody"><div class="card"><div class="empty">读取中…</div></div></div>
+  </section>
+
+  <p class="privacy">评分与选项为即时统计；文字回馈由 AI 定期整理，不显示姓名、地区、班别、车次等可辨识身份的信息。<br>本页每 30 秒自动更新。</p>
   <footer>感恩每一位同行的善知识 🙏</footer>
 </main>
 <div id="tip"></div>
@@ -504,7 +536,33 @@ addEventListener('scroll',()=>tip.style.opacity=0,{passive:true});
 const io=new IntersectionObserver(es=>es.forEach(e=>{ if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); } }),{threshold:.12});
 document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
 
+/* ───────── 学员的声音：AI 整理后的 voices.json（已去识别化，不含原文） ───────── */
+const cnt = n => n>1 ? `<span class="cnt">${n} 人提到</span>` : '';
+async function loadVoices(){
+  let V;
+  try{ const r=await fetch('voices.json?t='+Date.now(),{cache:'no-store'}); if(!r.ok) throw 0; V=await r.json(); }
+  catch(_){ $('vBody').innerHTML='<div class="card"><div class="empty">暂时读不到整理内容，稍后会自动重试</div></div>'; return; }
+  if(V.updated) $('vMeta').textContent=`由 AI 整理 ${V.n||0} 份文字回馈 · 最近整理：${V.updated} · 已去除可辨识身份的信息，内容为改写而非原文`;
+  if(!V.n){ $('vBody').innerHTML='<div class="card"><div class="empty">收到文字回馈后，会在这里整理大家的心得与建议 🙏</div></div>'; return; }
+  const block=(icon,title,sub,inner)=>`<div class="card vcard"><h3><span class="ic">${icon}</span>${esc(title)}</h3>${sub?`<p class="vsub">${esc(sub)}</p>`:''}${inner}</div>`;
+  const out=[];
+  if(V.highlights?.length) out.push(block('✦','最受用、最感动的时刻','大家分享的心得（改写整理）',
+    `<div class="quotes">${V.highlights.map(h=>`<div class="quote">${esc(h.text)}${cnt(h.count)}</div>`).join('')}</div>`));
+  if(V.actions?.length) out.push(block('★','来年最值得优先改善的事','综合各方面建议，依提到人数与影响排序',
+    `<ol class="actions">${V.actions.map(a=>`<li>${esc(a.text)}${cnt(a.count)}</li>`).join('')}</ol>`));
+  (V.topics||[]).forEach(t=>{
+    const items=[...(t.praise||[]).map(p=>({...p,k:'good'})),...(t.suggestions||[]).map(s=>({...s,k:'sug'}))];
+    if(!items.length) return;
+    out.push(block(t.icon||'•',t.name,t.summary||'',
+      `<ul class="vlist">${items.map(i=>`<li class="${i.k==='sug'?'sug':''}"><span class="vtag">${i.k==='sug'?'建议':'肯定'}</span>${esc(i.text)}${cnt(i.count)}</li>`).join('')}</ul>`));
+  });
+  if(V.places?.length) out.push(block('⛰','来年想去的地方','',
+    `<div class="chips">${V.places.map(p=>`<span class="chip">${esc(p.name)}${p.count>1?`<b>${p.count}</b>`:''}</span>`).join('')}</div>`));
+  $('vBody').innerHTML=`<div class="vgrid">${out.join('')}</div>`;
+}
+
 load(); setInterval(load,30000);
+loadVoices(); setInterval(loadVoices,120000);
 document.addEventListener('visibilitychange',()=>{ if(!document.hidden) load(); });
 </script>
 </body>
