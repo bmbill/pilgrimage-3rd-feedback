@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>回馈统计</title>
+<meta name="description" content="2026忆师恩朝圣团3rd 建议与回馈的即时统计（只显示评分与选项，不含姓名与文字回馈）">
+<style>
+:root{
+  --bg:#f6f4ef; --card:#fcfcfb; --line:#e4e1da;
+  --ink:#0b0b0b; --ink2:#52514e; --ink3:#7a7873;
+  --r1:#c8423f; --r2:#e8897f; --r3:#d9d7d1; --r4:#6da7ec; --r5:#2a78d6;
+  --bar:#2a78d6; --accent:#8a5a1c;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#121211; --card:#1a1a19; --line:#2e2e2b;
+    --ink:#f0efec; --ink2:#c3c2b7; --ink3:#93918a;
+    --r1:#e0605a; --r2:#9c4d48; --r3:#4a4945; --r4:#2f5f99; --r5:#5598e7;
+    --bar:#5598e7; --accent:#d9a55a;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#121211; --card:#1a1a19; --line:#2e2e2b;
+  --ink:#f0efec; --ink2:#c3c2b7; --ink3:#93918a;
+  --r1:#e0605a; --r2:#9c4d48; --r3:#4a4945; --r4:#2f5f99; --r5:#5598e7;
+  --bar:#5598e7; --accent:#d9a55a;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei","Noto Sans SC",sans-serif;
+  line-height:1.5;-webkit-text-size-adjust:100%}
+main{max-width:720px;margin:0 auto;padding:20px 16px 48px}
+header h1{font-size:22px;margin:0 0 4px;letter-spacing:.5px}
+header .sub{color:var(--ink2);font-size:14px}
+.status{display:flex;gap:8px;align-items:center;color:var(--ink3);font-size:13px;margin-top:6px}
+.dot{width:8px;height:8px;border-radius:50%;background:#0ca30c;flex:none}
+.dot.off{background:#c8423f}
+.tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:18px 0}
+.tile{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px}
+.tile .k{font-size:12px;color:var(--ink2)}
+.tile .v{font-size:28px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.2;margin-top:2px}
+.tile .v small{font-size:14px;font-weight:500;color:var(--ink3)}
+section{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-top:14px}
+section h2{font-size:16px;margin:0 0 2px}
+section .hint{font-size:12px;color:var(--ink3);margin-bottom:12px}
+.legend{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:12px;color:var(--ink2);margin-bottom:12px}
+.legend span{display:inline-flex;align-items:center;gap:5px}
+.legend i{width:10px;height:10px;border-radius:3px;display:inline-block}
+.row{margin:10px 0 14px}
+.row .lab{display:flex;justify-content:space-between;gap:8px;font-size:14px;margin-bottom:4px}
+.row .lab b{font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
+.row .lab .n{color:var(--ink3);font-weight:400;font-size:12px}
+.stack{display:flex;gap:2px;height:22px;border-radius:4px;overflow:hidden;background:var(--line)}
+.stack .seg{height:100%;min-width:0;display:flex;align-items:center;justify-content:center;
+  font-size:11px;color:#fff;font-variant-numeric:tabular-nums;cursor:default}
+.stack .seg.light{color:#0b0b0b}
+.hbar{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 10px;align-items:center;margin:8px 0}
+.hbar .t{font-size:14px}
+.hbar .c{font-size:13px;color:var(--ink2);font-variant-numeric:tabular-nums;white-space:nowrap}
+.hbar .track{grid-column:1/-1;height:12px;background:var(--line);border-radius:4px;overflow:hidden}
+.hbar .fill{height:100%;background:var(--bar);border-radius:0 4px 4px 0;cursor:default}
+.empty{color:var(--ink3);font-size:14px;padding:6px 0}
+details{margin-top:14px;font-size:13px;color:var(--ink2)}
+details table{border-collapse:collapse;width:100%;margin-top:8px;font-variant-numeric:tabular-nums}
+details th,details td{border-bottom:1px solid var(--line);padding:4px 6px;text-align:right}
+details th:first-child,details td:first-child{text-align:left}
+footer{color:var(--ink3);font-size:12px;margin-top:18px;text-align:center}
+#tip{position:fixed;pointer-events:none;background:var(--ink);color:var(--card);font-size:12px;
+  padding:5px 8px;border-radius:6px;opacity:0;transition:opacity .1s;z-index:9;white-space:nowrap}
+@media (max-width:420px){.tile .v{font-size:24px}}
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>2026忆师恩朝圣团3rd 回馈统计</h1>
+    <div class="sub">感恩大家的回馈🙏 这里只显示评分与选项的统计，不显示姓名与文字内容。</div>
+    <div class="status"><span class="dot" id="dot"></span><span id="stat">读取中…</span></div>
+  </header>
+
+  <div class="tiles">
+    <div class="tile"><div class="k">已填写</div><div class="v" id="tN">–<small> 人</small></div></div>
+    <div class="tile"><div class="k">整体满意度</div><div class="v" id="tAvg">–<small> / 5</small></div></div>
+    <div class="tile"><div class="k">愿意推荐</div><div class="v" id="tRec">–<small>%</small></div></div>
+  </div>
+
+  <section>
+    <h2>课程受用程度</h2>
+    <div class="hint">每条是一天的课程，右边是平均分；点或指着色块可看人数</div>
+    <div class="legend" id="lg1"></div>
+    <div id="course"></div>
+  </section>
+
+  <section>
+    <h2>各项满意度</h2>
+    <div class="hint">没有接触到的项目可以跳过，所以每项人数可能不同</div>
+    <div class="legend" id="lg2"></div>
+    <div id="admin"></div>
+  </section>
+
+  <section>
+    <h2>整体满意度</h2>
+    <div class="legend" id="lg3"></div>
+    <div id="overall"></div>
+  </section>
+
+  <section><h2>行前收到的信息是否足够</h2><div id="q_pre"></div></section>
+  <section><h2>行程节奏与体力负荷</h2><div id="q_pace"></div></section>
+  <section><h2>是否愿意推荐同学参加来年的朝圣团</h2><div id="q_rec"></div></section>
+
+  <details>
+    <summary>数据表</summary>
+    <div id="tbl"></div>
+  </details>
+
+  <footer>数据来自回馈表单，约每 5 分钟同步一次，本页每分钟自动更新</footer>
+</main>
+<div id="tip"></div>
+
+<script>
+// 发布到网络的「统计」分页（只有评分与选项栏，没有姓名、地区、文字回馈）
+const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR-eHEOZNW-UpDuOPAOF7tprqgNvZWf2JYUroUrptk-7kLsaEeCgN8cFHpKlNcdxmY7asfCXjDUD34L/pub?gid=543644211&single=true&output=csv';
+
+const SCALE = {1:'1 分',2:'2 分',3:'3 分',4:'4 分',5:'5 分'};
+const ORDERS = {
+  pre: ['足够','大致足够','不足（请在下方「其他事项」说明）'],
+  pace:['太赶、太累','刚刚好','太松、可以再充实'],
+  rec: ['一定会','可能会','还不确定','不会']
+};
+
+function parseCSV(t){
+  const rows=[];let row=[],f='',q=false;
+  for(let i=0;i<t.length;i++){
+    const c=t[i];
+    if(q){ if(c==='"'){ if(t[i+1]==='"'){f+='"';i++;} else q=false; } else f+=c; }
+    else if(c==='"') q=true;
+    else if(c===','){ row.push(f); f=''; }
+    else if(c==='\n'||c==='\r'){ if(c==='\r'&&t[i+1]==='\n') i++; row.push(f); rows.push(row); row=[]; f=''; }
+    else f+=c;
+  }
+  if(f!==''||row.length){ row.push(f); rows.push(row); }
+  return rows;
+}
+const short = h => { const m=h.match(/\[([^\]]+)\]\s*$/); return m?m[1]:h; };
+const esc = s => String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+function legend(el){
+  el.innerHTML=[1,2,3,4,5].map(k=>`<span><i style="background:var(--r${k})"></i>${k===1?'1 不满意/不受用':k===5?'5 非常满意/受用':k}</span>`).join('');
+}
+
+function ratingRows(el, items){
+  if(!items.some(it=>it.n)){ el.innerHTML='<div class="empty">还没有人填写</div>'; return; }
+  el.innerHTML=items.map(it=>{
+    const segs=[1,2,3,4,5].filter(k=>it.c[k]).map(k=>{
+      const pct=it.c[k]/it.n*100;
+      const tip=`${esc(it.label)}｜${SCALE[k]}：${it.c[k]} 人（${Math.round(pct)}%）`;
+      return `<div class="seg${k===3||(k===2||k===4)?' light':''}" style="flex:${it.c[k]} 1 0;background:var(--r${k})" data-tip="${tip}">${pct>=12?it.c[k]:''}</div>`;
+    }).join('');
+    return `<div class="row"><div class="lab"><span>${esc(it.label)}</span><b>${it.n?it.avg.toFixed(1):'–'} <span class="n">${it.n} 人</span></b></div>
+      <div class="stack" role="img" aria-label="${esc(it.label)} 平均 ${it.n?it.avg.toFixed(1):'无'} 分">${segs}</div></div>`;
+  }).join('');
+}
+
+function choiceBars(el, counts, order){
+  const keys=[...order, ...Object.keys(counts).filter(k=>!order.includes(k))];
+  const total=keys.reduce((s,k)=>s+(counts[k]||0),0);
+  if(!total){ el.innerHTML='<div class="empty">还没有人填写</div>'; return; }
+  const max=Math.max(...keys.map(k=>counts[k]||0));
+  el.innerHTML=keys.map(k=>{
+    const v=counts[k]||0, pct=v/total*100;
+    return `<div class="hbar"><span class="t">${esc(k)}</span><span class="c">${v} 人 · ${Math.round(pct)}%</span>
+      <div class="track"><div class="fill" style="width:${max?v/max*100:0}%" data-tip="${esc(k)}：${v} 人（${Math.round(pct)}%）"></div></div></div>`;
+  }).join('');
+}
+
+function tally(rows, col){
+  const c={1:0,2:0,3:0,4:0,5:0}; let n=0,s=0;
+  rows.forEach(r=>{ const v=parseInt(r[col],10); if(v>=1&&v<=5){c[v]++;n++;s+=v;} });
+  return {c,n,avg:n?s/n:0};
+}
+function count(rows,col){ const o={}; rows.forEach(r=>{ const v=(r[col]||'').trim(); if(v) o[v]=(o[v]||0)+1; }); return o; }
+
+function render(rows){
+  const head=rows[0]||[];
+  const data=rows.slice(1).filter(r=>r.some(x=>x.trim()));
+  const idx=(re)=>head.map((h,i)=>re.test(h)?i:-1).filter(i=>i>=0);
+  const course=idx(/课程受用/), admin=idx(/各项满意度/);
+  const iOverall=idx(/整体/)[0], iPre=idx(/行前/)[0], iPace=idx(/节奏/)[0], iRec=idx(/推荐/)[0];
+
+  document.getElementById('tN').innerHTML=`${data.length}<small> 人</small>`;
+  const ov=iOverall!=null?tally(data,iOverall):{n:0};
+  document.getElementById('tAvg').innerHTML=`${ov.n?ov.avg.toFixed(1):'–'}<small> / 5</small>`;
+  const rc=iRec!=null?count(data,iRec):{}; const rcN=Object.values(rc).reduce((a,b)=>a+b,0);
+  document.getElementById('tRec').innerHTML=`${rcN?Math.round(((rc['一定会']||0)+(rc['可能会']||0))/rcN*100):'–'}<small>%</small>`;
+
+  const items=cols=>cols.map(i=>({label:short(head[i]),...tally(data,i)}));
+  const cItems=items(course), aItems=items(admin);
+  ratingRows(document.getElementById('course'), cItems);
+  ratingRows(document.getElementById('admin'), aItems);
+  ratingRows(document.getElementById('overall'), iOverall!=null?[{label:'整体满意度',...ov}]:[]);
+  choiceBars(document.getElementById('q_pre'), iPre!=null?count(data,iPre):{}, ORDERS.pre);
+  choiceBars(document.getElementById('q_pace'), iPace!=null?count(data,iPace):{}, ORDERS.pace);
+  choiceBars(document.getElementById('q_rec'), rc, ORDERS.rec);
+
+  const all=[...cItems,...aItems, ...(ov.n?[{label:'整体满意度',...ov}]:[])];
+  document.getElementById('tbl').innerHTML=`<table><tr><th>项目</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>人数</th><th>平均</th></tr>${
+    all.map(it=>`<tr><td>${esc(it.label)}</td>${[1,2,3,4,5].map(k=>`<td>${it.c[k]}</td>`).join('')}<td>${it.n}</td><td>${it.n?it.avg.toFixed(2):'–'}</td></tr>`).join('')}</table>`;
+}
+
+async function load(){
+  const st=document.getElementById('stat'), dot=document.getElementById('dot');
+  try{
+    const res=await fetch(CSV_URL+(CSV_URL.includes('?')?'&':'?')+'t='+Date.now(),{cache:'no-store'});
+    if(!res.ok) throw new Error(res.status);
+    render(parseCSV(await res.text()));
+    dot.classList.remove('off');
+    st.textContent='更新于 '+new Date().toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'});
+  }catch(e){
+    dot.classList.add('off');
+    st.textContent='暂时读不到数据，稍后会自动重试';
+  }
+}
+
+[ 'lg1','lg2','lg3' ].forEach(id=>legend(document.getElementById(id)));
+load(); setInterval(load,60000);
+document.addEventListener('visibilitychange',()=>{ if(!document.hidden) load(); });
+
+// 提示框：电脑指着、手机点一下
+const tip=document.getElementById('tip');
+function showTip(e){
+  const t=e.target.closest('[data-tip]'); if(!t){ tip.style.opacity=0; return; }
+  tip.textContent=t.dataset.tip; tip.style.opacity=1;
+  const x=Math.min(e.clientX+12, innerWidth-tip.offsetWidth-8);
+  tip.style.left=Math.max(8,x)+'px'; tip.style.top=(e.clientY-36)+'px';
+}
+document.addEventListener('pointermove',showTip);
+document.addEventListener('pointerdown',showTip);
+document.addEventListener('scroll',()=>tip.style.opacity=0,{passive:true});
+</script>
+</body>
+</html>
